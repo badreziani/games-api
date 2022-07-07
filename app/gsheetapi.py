@@ -1,26 +1,24 @@
 from googleapiclient.discovery import build
+from google.oauth2 import service_account
 
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 
-# # The ID of spreadsheet.
-# SAMPLE_SPREADSHEET_ID = '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'
-# fetcher@gamesapi-355613.iam.gserviceaccount.com
-# creds = None
-# service = build('sheets', 'v4', credentials=creds)
+def get_sheet_data():
+    SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+    SERVICE_ACCOUNT_FILE = './keys.json'
 
-# # Call the Sheets API
-# sheet = service.spreadsheets()
-# result = sheet.values().get(spreadsheetId=SAMPLE_SPREADSHEET_ID,
-#                             range=SAMPLE_RANGE_NAME).execute()
-# values = result.get('values', [])
+    credentials = None
+    credentials = service_account.Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 
-# if not values:
-#     print('No data found.')
-#     return
+    # # The ID of spreadsheet.
+    SAMPLE_SPREADSHEET_ID = '19gv9W9qflPPFGjpnktK2D8jxPw8n5C5uFGz_Z32FNM8'
 
-# print('Name, Major:')
-# for row in values:
-#     # Print columns A and E, which correspond to indices 0 and 4.
-#     print('%s, %s' % (row[0], row[4]))
-   
+    service = build('sheets', 'v4', credentials=credentials)
 
+    # Call the Sheets API
+    sheet = service.spreadsheets()
+    result = sheet.values().get(spreadsheetId=SAMPLE_SPREADSHEET_ID,
+                                range="games!A1:AD2089").execute()
+    rows = result.get('values', [])[1:]
+
+    return rows
