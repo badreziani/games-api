@@ -1,51 +1,83 @@
-from fastapi import Depends, UploadFile, File, status, HTTPException, APIRouter
-from sqlalchemy.orm import Session
-from .. import database, schemas, models, oauth2, gsheetapi
+from fastapi import status, HTTPException, APIRouter
+from .. import gsheetapi
+from ..config import settings
+import requests
+import json
 
 router = APIRouter()
+ENDPOINT = f'https://api.airtable.com/v0/{settings.airtable_base_id}/{settings.airtable_table_name}'
+
+headers = {
+    'Authorization': f'Bearer {settings.api_key}'
+}
+
 # Fetch All Games
-@router.get("/api/categories")
-def fetch_all_categories(db: Session = Depends(database.get_db)):
-    categories = db.query(models.Category).all()
-    return {"categories": categories}
+
+
+@router.get("/api/categories", status_code=status.HTTP_200_OK)
+def fetch_all_categories():
+    res = json.loads(requests.get(ENDPOINT, headers=headers).text)
+    records = res.get('records')
+    categories = []
+    for record in records:
+        record_categories = record.get('fields').get('CATEGORIES')
+        if isinstance(record_categories, str):
+            record_categories = record_categories.split(',')
+
+        if record_categories:
+            categories += record_categories
+
+    categories = list(set(categories))
+
+    return {"data": categories}
 
 
 # Fetch All Games
-@router.get("/api/games")
-def fetch_all_games(db: Session = Depends(database.get_db)):
-    games = db.query(models.Game).all()
-    return {"games": games}
+@router.get("/api/games", status_code=status.HTTP_200_OK)
+async def fetch_all_games(category: str | None = None, newest: str | None = None):
+    res = json.loads(requests.get(ENDPOINT, headers=headers).text)
+    games = res.get('records')
+    if category:
+        games = [game for game in games if category in game.get(
+            'fields').get('CATEGORIES')]
+
+    if newest:
+        games.sort(key=lambda x: x.get('createdTime'), reverse=True)
+    return {"data": games}
 
 
 # Fetch All Single Game
-@router.get("/api/games/{id}", response_model=schemas.Student)
-async def fetch_single_game(id: int, db: Session = Depends(database.get_db)):
-    game = db.query(models.Game).filter(
-        models.Game.id == id).first()
-
-    if game is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=[{"msg": "Game not found."}])
-
-    return game
+@router.get("/api/game/{id}", status_code=status.HTTP_200_OK)
+async def fetch_single_game(id: str):
+    game = json.loads(requests.get(f'{ENDPOINT}/{id}', headers=headers).text)
+    return {"data": game}
 
 
-@router.post("/api/games/update", status_code=status.HTTP_201_CREATED)
-async def update_db(db: Session = Depends(database.get_db)): # current_user: int = Depends(oauth2.get_current_user)
+@router.get("/api/games/{title}", status_code=status.HTTP_200_OK)
+async def fetch_single_game_by_name(title: str):
+    res = json.loads(requests.get(ENDPOINT, headers=headers).text)
+    game = [g for g in res.get('records') if g.get(
+        'fields').get('TITLE') == title][0]
+    return {"data": game}
 
-    try:
-        rows = gsheetapi.get_sheet_data()
-        for row in rows:
-            game = db.query(models.Game).filter(models.Game.title == row[1]).first()
+# @router.post("/api/games/update", status_code=status.HTTP_201_CREATED)
+# # current_user: int = Depends(oauth2.get_current_user)
+# async def update_db(db: Session = Depends(database.get_db)):
 
-            if game is None:
-                print(*row)
-                break
-                # game = models.Game(*row)
-                # db.add(game)
-                # db.commit()
-            else:
-                pass
-    except:
-        raise HTTPException(
-            status_code=status.HTTP_408_REQUEST_TIMEOUT, detail="Timeout.")
+#     try:
+#         rows = gsheetapi.get_sheet_data()
+#         for row in rows:
+#             game = db.query(models.Game).filter(
+#                 models.Game.title == row[1]).first()
+
+#             if game is None:
+
+#                 game = models.Game(*row)
+#                 db.add(game)
+#                 db.commit()
+#             else:
+#                 pass
+#     except Exception as ex:
+#         print(ex)
+#         raise HTTPException(
+#             status_code=status.HTTP_408_REQUEST_TIMEOUT, detail="Timeout.")
