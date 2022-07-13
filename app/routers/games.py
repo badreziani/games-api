@@ -61,24 +61,3 @@ async def fetch_single_game_by_name(title: str):
         'fields').get('TITLE') == title][0]
     return {"data": game}
 
-# @router.post("/api/games/update", status_code=status.HTTP_201_CREATED)
-# # current_user: int = Depends(oauth2.get_current_user)
-# async def update_db(db: Session = Depends(database.get_db)):
-
-#     try:
-#         rows = gsheetapi.get_sheet_data()
-#         for row in rows:
-#             game = db.query(models.Game).filter(
-#                 models.Game.title == row[1]).first()
-
-#             if game is None:
-
-#                 game = models.Game(*row)
-#                 db.add(game)
-#                 db.commit()
-#             else:
-#                 pass
-#     except Exception as ex:
-#         print(ex)
-#         raise HTTPException(
-#             status_code=status.HTTP_408_REQUEST_TIMEOUT, detail="Timeout.")
