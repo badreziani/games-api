@@ -27,9 +27,10 @@ def fetch_all_categories():
         if record_categories:
             categories += record_categories
 
-    categories = list(set(categories))
+    categories = [{"name": item, "url": item, "category": item}
+                  for item in list(set(categories))]
 
-    return {"data": categories}
+    return {"data": {"sort": [{"name": "newest", "url": "newest"}], "category": categories}}
 
 
 # Fetch All Games
