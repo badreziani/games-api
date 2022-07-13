@@ -1,5 +1,4 @@
-from fastapi import status, HTTPException, APIRouter
-from .. import gsheetapi
+from fastapi import status, APIRouter
 from ..config import settings
 import requests
 import json
